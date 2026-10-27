@@ -1,5 +1,7 @@
 # Live Voice [![npm](https://img.shields.io/npm/v/%40nmuzaffar%2Fdsh-live-voice?color=green)](https://www.npmjs.com/package/@nmuzaffar/dsh-live-voice)
 
+![A live voice turn, with the orb in the composer](assets/chat-ui.webp)
+
 Talk to DeepSeek Harness using the GPT-Live-1 Full Duplex conversational model. 
 
 ## Install
@@ -18,4 +20,4 @@ Then **Plugins → Live Voice** to configure Live Voice with your OpenAI key.
 
 ## Development
 
-Refer to ARCHITECTURE.md for development notes and guidance. 
+Refer to [ARCHITECTURE.md](ARCHITECTURE.md) for development notes and guidance.
