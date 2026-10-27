@@ -1,5 +1,7 @@
 # Live Voice
 
+[![npm](https://img.shields.io/npm/v/%40nmuzaffar%2Fdsh-live-voice)](https://www.npmjs.com/package/@nmuzaffar/dsh-live-voice)
+
 Talk to DeepSeek Harness. GPT-Live listens and speaks; the harness does the work.
 
 ![The Live Voice plugin page in DSH](assets/plugin-ui.webp)
