@@ -1,4 +1,4 @@
-# Live Voice [![npm](https://img.shields.io/npm/v/%40nmuzaffar%2Fdsh-live-voice)](https://www.npmjs.com/package/@nmuzaffar/dsh-live-voice)
+# Live Voice [![npm](https://img.shields.io/npm/v/%40nmuzaffar%2Fdsh-live-voice?color=green)](https://www.npmjs.com/package/@nmuzaffar/dsh-live-voice)
 
 Talk to DeepSeek Harness using the GPT-Live-1 Full Duplex conversational model. 
 
