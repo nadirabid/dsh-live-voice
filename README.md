@@ -60,31 +60,15 @@ OpenAI (HTTP 401), so a live smoke test is the first thing to do once a valid ke
 
 ## Set the key from the UI
 
-Plugins → Live Voice → the `live-voice` row → paste the key into **OpenAI API key** →
-**Save key**. The host writes it to the file below with mode 600 and uses it for the next
-session immediately, no restart. The row summary shows the stored key masked
-(`sk-proj…4xnk`) so you can tell whether one is set.
+Plugins → Live Voice → **OpenAI API key**. The card reads and writes the plugin's own `apiKey` config
+through the harness config form, so the field shows the key that is actually stored, and the value
+persists in the profile's plugin config (an id-targeted `live-voice` entry). Saving restarts the
+plugin row, so a running live session ends; the next one uses the new key.
 
-## The voice row
-
-`conversation.chat.node` is a keyed slot owned by `@deepseek-ai/dsh-client-ui-chat`. This bundle
-registers the `turn-trigger` key at priority −1, shadowing that package's renderer so voice turns can
-carry the plugin's own mark and the title **Live Voice** with the decoded speech inline, right-aligned
-like the user's own messages so speech and answer sit on opposite sides of the column. Every other
-trigger source (schedule, job, webhook, subagent, team, github, plugin) keeps the core title and
-icon, rendered by our copy of that row.
-
-Owning the key means owning the row for all sources: if core redesigns it, this copy has to follow.
-
-## What you said, in the chat
-
-Each dispatched task carries the decoded speech as its notice summary, so the conversation shows a
-compact row reading `Voice: …` immediately above the turn it triggered, with the result below it.
-The agent itself receives only the trimmed task text, not the whole transcript — the row is for you.
-
-While you are still speaking, the same words appear in a right-aligned strip above the composer, so
-dictation is visible before anything is dispatched. The strip clears the moment the request becomes a
-turn, and the chat row carries it from there.
+Because the key now lives in the profile config, it is plaintext in `~/.dsh/profiles/<name>/cordis.patch.yml`.
+If you would rather keep it out of that file, clear the field and set `apiKeyFile` instead — the
+resolution order is `apiKey`, then that file, then the credential reference in `apiKeyEnv`, then the
+launch and process environment.
 
 ## Use
 
