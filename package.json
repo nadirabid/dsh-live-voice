@@ -1,0 +1,41 @@
+{
+  "name": "@local/dsh-live-voice",
+  "version": "0.5.2",
+  "private": true,
+  "type": "module",
+  "description": "Full-duplex live voice for DeepSeek Harness: GPT-Live listens and speaks, the harness does the work.",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./client/index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "client",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "scripts": {
+    "test": "node --test --test-force-exit test/"
+  },
+  "license": "MIT"
+}

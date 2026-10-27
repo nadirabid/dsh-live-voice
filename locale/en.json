@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Live Voice",
+    "description": "Full-duplex voice session that talks to this harness through GPT-Live."
+  }
+}
