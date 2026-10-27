@@ -69,7 +69,8 @@ session immediately, no restart. The row summary shows the stored key masked
 
 `conversation.chat.node` is a keyed slot owned by `@deepseek-ai/dsh-client-ui-chat`. This bundle
 registers the `turn-trigger` key at priority −1, shadowing that package's renderer so voice turns can
-carry the plugin's own mark and the title **Live Voice** with the decoded speech inline. Every other
+carry the plugin's own mark and the title **Live Voice** with the decoded speech inline, right-aligned
+like the user's own messages so speech and answer sit on opposite sides of the column. Every other
 trigger source (schedule, job, webhook, subagent, team, github, plugin) keeps the core title and
 icon, rendered by our copy of that row.
 

@@ -512,6 +512,34 @@ window.__ModuleLoader__.load({
       const time = clockOf(data.time);
       const body = blocksToText(data.content);
 
+      const mark = h('span', { key: 'mark', style: { flex: '0 0 auto', display: 'inline-flex', opacity: 0.75 } },
+        voice ? h(VoiceMark, { size: 15 }) : Icon ? h(Icon, { size: 14 }) : null);
+      const label = h('span', { key: 'label', style: { flex: '0 0 auto', fontSize: 12.5, fontWeight: 500 } }, title);
+      const spoken = speech === '' ? null : h('span', {
+        key: 'spoken',
+        style: {
+          minWidth: 0, maxWidth: voice ? '68%' : undefined,
+          flex: voice ? '0 1 auto' : '1 1 auto',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          fontSize: 12.5, opacity: 0.55, textAlign: voice ? 'right' : 'left',
+        },
+      }, speech);
+      const timeNode = h('span', {
+        key: 'time',
+        style: { flex: '0 0 auto', fontSize: 11, opacity: 0.45, fontVariantNumeric: 'tabular-nums' },
+      }, time);
+      const chevron = h('span', {
+        key: 'chevron',
+        style: { flex: '0 0 auto', opacity: 0.45, fontSize: 10, transform: open ? 'rotate(180deg)' : 'none' },
+      }, '\u25be');
+
+      // A voice turn reads like the user's own message: right-aligned, speech
+      // first, then the mark and title. Every other trigger keeps the core
+      // left-aligned arrangement.
+      const children = voice
+        ? [spoken, label, mark, timeNode, chevron].filter(Boolean)
+        : [mark, label, spoken, h('span', { key: 'spacer', style: { flex: '1 1 auto' } }), timeNode, chevron];
+
       return h('section', { style: { margin: '2px 0' }, 'data-turn-trigger': true },
         h('button', {
           type: 'button',
@@ -519,24 +547,18 @@ window.__ModuleLoader__.load({
           onClick: () => setOpen(!open),
           style: {
             display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+            justifyContent: voice ? 'flex-end' : 'flex-start',
             padding: '6px 2px', background: 'none', border: 'none', cursor: 'pointer',
-            color: 'inherit', font: 'inherit', textAlign: 'left',
+            color: 'inherit', font: 'inherit', textAlign: voice ? 'right' : 'left',
           },
-        },
-        h('span', { style: { flex: '0 0 auto', display: 'inline-flex', opacity: 0.75 } },
-          voice ? h(VoiceMark, { size: 15 }) : Icon ? h(Icon, { size: 14 }) : null),
-        h('span', { style: { flex: '0 0 auto', fontSize: 12.5, fontWeight: 500 } }, title),
-        speech === '' ? null : h('span', {
-          style: {
-            flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap', fontSize: 12.5, opacity: 0.55,
-          },
-        }, speech),
-        speech === '' ? h('span', { style: { flex: '1 1 auto' } }) : null,
-        h('span', { style: { flex: '0 0 auto', fontSize: 11, opacity: 0.45, fontVariantNumeric: 'tabular-nums' } }, time),
-        h('span', { style: { flex: '0 0 auto', opacity: 0.45, fontSize: 10, transform: open ? 'rotate(180deg)' : 'none' } }, '\u25be')),
+        }, children),
         open ? h('div', {
-          style: { padding: '2px 0 10px 23px', display: 'grid', gap: 6 },
+          style: {
+            padding: voice ? '2px 23px 10px 0' : '2px 0 10px 23px',
+            display: 'grid', gap: 6,
+            justifyItems: voice ? 'end' : 'start',
+            textAlign: voice ? 'right' : 'left',
+          },
         },
         h('div', { style: { fontSize: 11.5, opacity: 0.5 } },
           voice ? t('trigger.voiceNote') : t('trigger.explanation')),
