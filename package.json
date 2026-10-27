@@ -1,6 +1,6 @@
 {
   "name": "@nmuzaffar/dsh-live-voice",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "type": "module",
   "description": "Live, full-duplex voice for DeepSeek Harness: GPT-Live listens and speaks, the harness does the work.",
   "exports": {
@@ -17,6 +17,7 @@
     "locale/*.json",
     "icon.svg",
     "README.md",
+    "ARCHITECTURE.md",
     "LICENSE"
   ],
   "dsh": {

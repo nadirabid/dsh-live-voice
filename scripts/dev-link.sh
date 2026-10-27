@@ -5,6 +5,8 @@
 set -euo pipefail
 source_dir="${1:-$HOME/.dsh/profiles/node_modules/@deepseek-ai}"
 cd "$(dirname "$0")/.."
+# A fresh clone has no node_modules at all; lay down the one runtime dependency first.
+[ -d node_modules/ws ] || npm install --no-audit --no-fund
 mkdir -p node_modules/@deepseek-ai
 for package in dsh-llm dsh-session schemastery dsh-credentials dsh-launch-environment; do
   [ -d "$source_dir/$package" ] || continue
