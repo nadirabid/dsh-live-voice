@@ -82,6 +82,10 @@ Each dispatched task carries the decoded speech as its notice summary, so the co
 compact row reading `Voice: …` immediately above the turn it triggered, with the result below it.
 The agent itself receives only the trimmed task text, not the whole transcript — the row is for you.
 
+While you are still speaking, the same words appear in a right-aligned strip above the composer, so
+dictation is visible before anything is dispatched. The strip clears the moment the request becomes a
+turn, and the chat row carries it from there.
+
 ## Use
 
 Open a session, click **Live** in the composer's right-hand controls (same row as the microphone

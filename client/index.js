@@ -15,8 +15,37 @@ window.__ModuleLoader__.load({
   id: '@local/dsh-live-voice',
   factory(require) {
     const React = require('react');
-    const { useCallback, useEffect, useRef, useState } = React;
+    const { useCallback, useEffect, useRef, useState, useSyncExternalStore } = React;
     const h = React.createElement;
+
+    /**
+     * Speech as it is decoded, shared by the orb and the dictation strip. The
+     * strip shows the words while they arrive; the chat row takes over once a
+     * delegation hands the request to the harness.
+     */
+    const dictation = (() => {
+      let state = { active: false, user: '', assistant: '' };
+      const listeners = new Set();
+      const emit = () => { for (const listener of listeners) listener(); };
+      const set = (next) => {
+        const merged = { ...state, ...next };
+        if (merged.active === state.active && merged.user === state.user && merged.assistant === state.assistant) return;
+        state = merged;
+        emit();
+      };
+      return {
+        subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
+        get: () => state,
+        start() { set({ active: true, user: '', assistant: '' }); },
+        stop() { set({ active: false, user: '', assistant: '' }); },
+        clearUser() { set({ user: '' }); },
+        append(role, text) {
+          if (typeof text !== 'string' || text === '') return;
+          const key = role === 'user' ? 'user' : 'assistant';
+          set({ [key]: (state[key] + text).slice(-800) });
+        },
+      };
+    })();
 
     const CAPTURE_RATE = 24_000;
     const FRAME_SAMPLES = 480; // 20 ms at 24 kHz
@@ -308,6 +337,7 @@ window.__ModuleLoader__.load({
         const engine = engineRef.current;
         engineRef.current = null;
         setStatus('idle');
+        dictation.stop();
         await engine?.stop();
       }, []);
 
@@ -317,13 +347,18 @@ window.__ModuleLoader__.load({
         if (!sessionId || engineRef.current) return;
         setError('');
         setStatus('connecting');
+        dictation.start();
         const engine = createEngine({
           onAudio: () => { setStatus('speaking'); settle(); },
-          onStatus: (next) => setStatus(next),
-          onTranscript: () => {},
+          onStatus: (next) => {
+            setStatus(next);
+            if (next === 'thinking') dictation.clearUser();
+          },
+          onTranscript: (role, text) => { dictation.append(role, text); },
           onError: (message) => {
             setError(message);
             setStatus('error');
+            dictation.stop();
             const running = engineRef.current;
             engineRef.current = null;
             void running?.stop();
@@ -331,6 +366,7 @@ window.__ModuleLoader__.load({
           onClosed: (reason) => {
             engineRef.current = null;
             setStatus('idle');
+            dictation.stop();
             setError(`live session ended (${reason})`);
           },
         });
@@ -566,6 +602,39 @@ window.__ModuleLoader__.load({
         body === '' ? null : h('div', { style: { fontSize: 12.5, opacity: 0.7, whiteSpace: 'pre-wrap' } }, body)) : null);
     }
 
+
+    /**
+     * Dictation strip: the words while they arrive, right-aligned like the row
+     * they become. Clears when the request is handed to the harness, so the
+     * chat row is the record and this is only the live preview.
+     */
+    function DictationStrip() {
+      const view = useSyncExternalStore(dictation.subscribe, dictation.get);
+      const scroller = useRef(null);
+      const text = view.user;
+
+      useEffect(() => {
+        const node = scroller.current;
+        if (node) node.scrollTop = node.scrollHeight;
+      }, [text]);
+
+      if (!view.active || text === '') return null;
+
+      return h('div', {
+        ref: scroller,
+        style: {
+          display: 'flex', justifyContent: 'flex-end',
+          maxHeight: 108, overflowY: 'auto', padding: '4px 2px 2px',
+        },
+      },
+      h('div', {
+        style: {
+          maxWidth: '78%', textAlign: 'right', fontSize: 13, lineHeight: 1.5,
+          opacity: 0.62, whiteSpace: 'pre-wrap',
+        },
+      }, text));
+    }
+
     /** The plugin's own settings card: paste an OpenAI key, stored host-side. */
     function LiveVoiceSettings({ view }) {
       const [state, setState] = useState(null);
@@ -651,6 +720,11 @@ window.__ModuleLoader__.load({
           priority: -1,
           locale: NS,
         }, TurnTriggerRow));
+        ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
+          name: 'conversation.input.dock',
+          id: 'live-voice-dictation',
+          order: 30,
+        }, DictationStrip));
         ctx.slots.inject('conversation.input.right', () => ctx.slots.register({
           name: 'conversation.input.right',
           id: 'live-voice',
