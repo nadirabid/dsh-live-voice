@@ -1,0 +1,8 @@
+#!/bin/sh
+# Refuse a commit whose staged additions look like a real credential.
+# The pattern is deliberately longer than the synthetic keys used in tests.
+if git diff --cached -U0 | grep '^+' | grep -Eq 'sk-(proj-)?[A-Za-z0-9_-]{40,}|-----BEGIN [A-Z ]*PRIVATE KEY-----'; then
+  echo 'pre-commit: staged content looks like a credential; refusing the commit' >&2
+  echo 'pre-commit: unstage it, or keep it in ~/.dsh/live-voice.key instead' >&2
+  exit 1
+fi
