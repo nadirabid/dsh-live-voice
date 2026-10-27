@@ -213,3 +213,31 @@ test('readOutcome reports the last assistant text and the turn reason', async ()
 });
 ;
 ;
+
+test('the settings route stores the key and echoes it back', async () => {
+  const { mkdtempSync, readFileSync, statSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const { tmpdir } = await import('node:os');
+  const dir = mkdtempSync(join(tmpdir(), 'live-voice-'));
+  const keyFile = join(dir, 'openai.key');
+
+  const live = await mockLive();
+  const { agent } = fakeAgent();
+  const { ctx, routes } = fakeCtx(agent);
+  const { apply } = await import('../lib/index.js');
+  apply(ctx, { endpoint: live.url, apiKeyFile: keyFile, apiKeyEnv: 'LIVE_VOICE_TEST_MISSING' });
+
+  const empty = await get(routes, '/api/live-voice/settings');
+  assert.equal(empty.body.hasKey, false);
+
+  const saved = await call(routes, '/api/live-voice/settings', { apiKey: 'sk-test-abcdefgh1234' });
+  assert.equal(saved.body.hasKey, true);
+  assert.equal(saved.body.key, 'sk-test-abcdefgh1234');
+  assert.equal(saved.body.hint, 'sk-test…1234');
+  assert.equal(readFileSync(keyFile, 'utf8'), 'sk-test-abcdefgh1234');
+  assert.equal(statSync(keyFile).mode & 0o777, 0o600);
+
+  const again = await get(routes, '/api/live-voice/settings');
+  assert.equal(again.body.key, 'sk-test-abcdefgh1234');
+  await live.close();
+});

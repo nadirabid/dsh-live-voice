@@ -691,75 +691,77 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * The plugin's own settings card. It reads and writes `apiKey` through the
-     * harness config form, so the value lives in the plugin's composition
-     * entry and the field shows what is actually stored.
+     * The plugin's settings card. The host reads and writes the key in the
+     * owner-only key file; the card asks for the stored value on mount so the
+     * field always shows the key in use, masked by the password input itself.
      */
-    function LiveVoiceSettings({ view, form }) {
-      const snapshot = useSyncExternalStore(form.subscribe, form.getSnapshot);
-      const stored = typeof snapshot.value?.apiKey === 'string' ? snapshot.value.apiKey : '';
-      const [draft, setDraft] = useState(null);
+    function LiveVoiceSettings({ view }) {
+      const [state, setState] = useState(null);
+      const [value, setValue] = useState('');
+      const [dirty, setDirty] = useState(false);
       const [busy, setBusy] = useState(false);
       const [error, setError] = useState('');
       const [note, setNote] = useState('');
 
-      const shown = draft ?? stored;
-      const writable = snapshot.writable !== false;
+      const load = useCallback(async () => {
+        try {
+          const response = await fetch('/api/live-voice/settings', { credentials: 'same-origin', cache: 'no-store' });
+          const result = await response.json();
+          setState(result);
+          setValue((current) => (current === '' ? result.key ?? '' : current));
+        } catch {
+          setState(null);
+        }
+      }, []);
+
+      useEffect(() => { void load(); }, [load]);
 
       const save = useCallback(async () => {
-        const key = shown.trim();
+        const key = value.trim();
         if (key === '') return;
         setBusy(true);
         setError('');
         setNote('');
         try {
-          const accepted = await form.set('apiKey', key);
-          if (!accepted) throw new Error('the host refused the write');
-          setDraft(null);
-          setNote('Saved to the plugin config. A running live session picks it up on its next start.');
+          const response = await fetch('/api/live-voice/settings', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ apiKey: key }),
+            credentials: 'same-origin',
+          });
+          const result = await response.json();
+          if (!response.ok || result.error) throw new Error(result.error ?? `status ${response.status}`);
+          setState(result);
+          setValue(result.key ?? key);
+          setDirty(false);
+          setNote('Saved. The next live session uses it.');
         } catch (cause) {
           setError(cause instanceof Error ? cause.message : String(cause));
         } finally {
           setBusy(false);
         }
-      }, [form, shown]);
-
-      const clear = useCallback(async () => {
-        setBusy(true);
-        setError('');
-        setNote('');
-        try {
-          const accepted = await form.unset('apiKey');
-          if (!accepted) throw new Error('the host refused the write');
-          setDraft('');
-          setNote('Cleared. The key file or environment is used instead.');
-        } catch (cause) {
-          setError(cause instanceof Error ? cause.message : String(cause));
-        } finally {
-          setBusy(false);
-        }
-      }, [form]);
+      }, [value]);
 
       if (view === 'summary') {
-        return h('span', null, stored === '' ? 'No OpenAI API key in the config' : `API key ${maskKey(stored)}`);
+        return h('span', null, state?.hasKey ? `API key ${state.hint}` : 'No OpenAI API key yet');
       }
 
       return h('div', { style: { display: 'grid', gap: 8, padding: '4px 0 12px' } },
         h('div', { style: { fontSize: 12, opacity: 0.75 } },
-          snapshot.status === 'loading'
-            ? 'Reading the plugin config…'
-            : stored === ''
-              ? 'No key in the plugin config. Paste one below; the key file and environment remain fallbacks.'
-              : `Stored key ${maskKey(stored)} · plugin config`),
+          state === null
+            ? 'Reading the stored key…'
+            : state.hasKey
+              ? `Stored key ${state.hint} · ${state.file}`
+              : 'No key stored. Paste an OpenAI key with GPT-Live access.'),
         h('div', { style: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' } },
           h('input', {
             type: 'password',
-            value: shown,
+            value,
             placeholder: 'sk-...',
             autoComplete: 'off',
             spellCheck: false,
-            disabled: !writable || busy,
-            onChange: (event) => setDraft(event.target.value),
+            disabled: busy,
+            onChange: (event) => { setDirty(true); setValue(event.target.value); },
             onKeyDown: (event) => { if (event.key === 'Enter') void save(); },
             style: {
               flex: '1 1 280px', height: 30, padding: '0 10px', borderRadius: 8,
@@ -769,30 +771,20 @@ window.__ModuleLoader__.load({
           }),
           h('button', {
             type: 'button',
-            disabled: busy || shown.trim() === '' || !writable,
+            disabled: busy || value.trim() === '',
             onClick: () => { void save(); },
             style: {
               height: 30, padding: '0 14px', borderRadius: 8, cursor: 'pointer',
               border: '1px solid rgba(122, 208, 255, 0.45)', background: 'rgba(122, 208, 255, 0.12)',
               color: 'inherit', fontSize: 12, opacity: busy ? 0.6 : 1,
             },
-          }, busy ? 'Saving…' : 'Save key'),
-          stored === '' ? null : h('button', {
-            type: 'button',
-            disabled: busy || !writable,
-            onClick: () => { void clear(); },
-            style: {
-              height: 30, padding: '0 12px', borderRadius: 8, cursor: 'pointer',
-              border: '1px solid rgba(128, 140, 160, 0.35)', background: 'transparent',
-              color: 'inherit', fontSize: 12,
-            },
-          }, 'Clear')),
+          }, busy ? 'Saving…' : 'Save key')),
         error ? h('div', { style: { fontSize: 11, color: '#ff8a8a' } }, error) : null,
         note ? h('div', { style: { fontSize: 11, opacity: 0.6 } }, note) : null);
     }
 
     return {
-      inject: ['slots', 'locale', 'configForms'],
+      inject: ['slots', 'locale'],
       apply(ctx) {
         ctx.effect(() => ctx.locale.register(NS, TRIGGER_LABELS));
         ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({
@@ -816,7 +808,6 @@ window.__ModuleLoader__.load({
           name: 'plugins.bundle.config',
           key: '@nmuzaffar/dsh-live-voice',
           locale: NS,
-          inject: () => ({ form: ctx.configForms.get('live-voice') }),
         }, LiveVoiceSettings));
       },
     };

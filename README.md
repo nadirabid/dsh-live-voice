@@ -60,15 +60,13 @@ OpenAI (HTTP 401), so a live smoke test is the first thing to do once a valid ke
 
 ## Set the key from the UI
 
-Plugins → Live Voice → **OpenAI API key**. The card reads and writes the plugin's own `apiKey` config
-through the harness config form, so the field shows the key that is actually stored, and the value
-persists in the profile's plugin config (an id-targeted `live-voice` entry). Saving restarts the
-plugin row, so a running live session ends; the next one uses the new key.
+Plugins → Live Voice → **OpenAI API key**. The host keeps the key in the owner-only file named by
+`apiKeyFile` (default `~/.dsh/live-voice.key`, mode 600); the card asks for the stored value when it
+opens, so the field is pre-filled with the key in use — masked by the password input — rather than
+starting empty. Saving writes the file and the next live session uses it; nothing restarts.
 
-Because the key now lives in the profile config, it is plaintext in `~/.dsh/profiles/<name>/cordis.patch.yml`.
-If you would rather keep it out of that file, clear the field and set `apiKeyFile` instead — the
-resolution order is `apiKey`, then that file, then the credential reference in `apiKeyEnv`, then the
-launch and process environment.
+Resolution order for a session: `apiKey` in the row config, then that file, then the credential
+reference in `apiKeyEnv`, then the launch and process environment.
 
 ## Use
 
