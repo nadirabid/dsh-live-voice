@@ -1,9 +1,8 @@
 {
-  "name": "@local/dsh-live-voice",
+  "name": "@nadirabid/dsh-live-voice",
   "version": "0.6.5",
-  "private": true,
   "type": "module",
-  "description": "Full-duplex live voice for DeepSeek Harness: GPT-Live listens and speaks, the harness does the work.",
+  "description": "Live, full-duplex voice for DeepSeek Harness: GPT-Live listens and speaks, the harness does the work.",
   "exports": {
     ".": "./lib/index.js",
     "./client": "./client/index.js",
@@ -37,5 +36,29 @@
   "scripts": {
     "test": "node --test --test-force-exit test/"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nadirabid/dsh-live-voice.git"
+  },
+  "homepage": "https://github.com/nadirabid/dsh-live-voice#readme",
+  "bugs": {
+    "url": "https://github.com/nadirabid/dsh-live-voice/issues"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "cordis",
+    "plugin",
+    "voice",
+    "gpt-live",
+    "realtime",
+    "full-duplex"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

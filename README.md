@@ -1,6 +1,6 @@
 # Live Voice for DeepSeek Harness
 
-`@local/dsh-live-voice` — a Cordis bundle with a host half and a browser half.
+`@nadirabid/dsh-live-voice` — a Cordis bundle with a host half and a browser half.
 
 A Cordis bundle that adds a full-duplex voice session to the Harness web GUI. You talk
 continuously; GPT-Live listens and speaks, and whenever it needs real work done it hands the
