@@ -551,11 +551,17 @@ window.__ModuleLoader__.load({
     function voiceRowChildren({ speech, t, time = '', live = false }) {
       const spoken = speech === '' ? null : h('span', {
         key: 'spoken',
-        style: {
-          minWidth: 0, maxWidth: '68%', flex: '0 1 auto',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          fontSize: 12.5, opacity: 0.55, textAlign: 'right',
-        },
+        style: live
+          ? {
+            minWidth: 0, maxWidth: '76%', flex: '0 1 auto',
+            fontSize: 12.5, lineHeight: 1.45, opacity: 0.6, textAlign: 'right',
+            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+          }
+          : {
+            minWidth: 0, maxWidth: '68%', flex: '0 1 auto',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            fontSize: 12.5, opacity: 0.55, textAlign: 'right',
+          },
       }, speech);
       const label = h('span', {
         key: 'label', style: { flex: '0 0 auto', fontSize: 12.5, fontWeight: 500 },
@@ -661,13 +667,21 @@ window.__ModuleLoader__.load({
      */
     function DictationStrip({ t }) {
       const view = useSyncExternalStore(dictation.subscribe, dictation.get);
+      const scroller = useRef(null);
       const text = view.user;
+
+      useEffect(() => {
+        const node = scroller.current;
+        if (node) node.scrollTop = node.scrollHeight;
+      }, [text]);
+
       if (!view.active || text === '') return null;
       return h('div', {
+        ref: scroller,
         style: {
           ...CHAT_COLUMN,
-          display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8,
-          padding: '6px 2px 8px', maxHeight: 96, overflow: 'hidden',
+          display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', gap: 8,
+          padding: '6px 2px 8px', maxHeight: 'min(32vh, 240px)', overflowY: 'auto',
         },
       }, voiceRowChildren({ speech: text, t, live: true }));
     }
