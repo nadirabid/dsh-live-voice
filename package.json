@@ -1,5 +1,5 @@
 {
-  "name": "@nadirabid/dsh-live-voice",
+  "name": "@nmuzaffar/dsh-live-voice",
   "version": "0.6.5",
   "type": "module",
   "description": "Live, full-duplex voice for DeepSeek Harness: GPT-Live listens and speaks, the harness does the work.",

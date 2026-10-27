@@ -1,4 +1,4 @@
 - insert:
     - id: live-voice
-      name: '@nadirabid/dsh-live-voice'
+      name: '@nmuzaffar/dsh-live-voice'
       config: {}

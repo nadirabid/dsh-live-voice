@@ -12,7 +12,7 @@
  * from that origin.
  */
 window.__ModuleLoader__.load({
-  id: '@nadirabid/dsh-live-voice',
+  id: '@nmuzaffar/dsh-live-voice',
   factory(require) {
     const React = require('react');
     const { useCallback, useEffect, useRef, useState, useSyncExternalStore } = React;
@@ -784,7 +784,7 @@ window.__ModuleLoader__.load({
         }, LiveVoice));
         ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
           name: 'plugins.bundle.config',
-          key: '@nadirabid/dsh-live-voice',
+          key: '@nmuzaffar/dsh-live-voice',
         }, LiveVoiceSettings));
       },
     };
