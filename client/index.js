@@ -604,9 +604,9 @@ window.__ModuleLoader__.load({
 
 
     /**
-     * Dictation strip: the words while they arrive, right-aligned like the row
-     * they become. Clears when the request is handed to the harness, so the
-     * chat row is the record and this is only the live preview.
+     * Dictation preview: the words while they arrive, drawn as the user's own
+     * bubble at the bottom of the conversation column. It clears when the
+     * request becomes a turn, where the voice row carries the same text.
      */
     function DictationStrip() {
       const view = useSyncExternalStore(dictation.subscribe, dictation.get);
@@ -624,13 +624,20 @@ window.__ModuleLoader__.load({
         ref: scroller,
         style: {
           display: 'flex', justifyContent: 'flex-end',
-          maxHeight: 108, overflowY: 'auto', padding: '4px 2px 2px',
+          maxHeight: 132, overflowY: 'auto', padding: '2px 0 6px',
         },
       },
       h('div', {
         style: {
-          maxWidth: '78%', textAlign: 'right', fontSize: 13, lineHeight: 1.5,
-          opacity: 0.62, whiteSpace: 'pre-wrap',
+          maxWidth: 'min(calc(var(--dsh-chat-content-width, 748px) * 0.702), 82%)',
+          background: 'var(--dsw-specific-bubble)',
+          borderRadius: 'var(--dsw-radius-xl)',
+          padding: '10px 16px',
+          fontSize: 'var(--dsh-content-font-size, 14px)',
+          lineHeight: 'calc(22px + var(--dsh-content-font-delta, 0px))',
+          color: 'var(--dsw-alias-label-primary)',
+          whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+          opacity: 0.72,
         },
       }, text));
     }
