@@ -306,6 +306,10 @@ window.__ModuleLoader__.load({
         }
         .lv-orb-on .lv-bar { animation: lv-pulse 900ms ease-in-out infinite; }
         .lv-orb-thinking .lv-bar { animation-duration: 1600ms; }
+        @keyframes lv-blink {
+          0%, 100% { opacity: .25; }
+          50% { opacity: 1; }
+        }
         @keyframes lv-pulse {
           0%, 100% { transform: scaleY(.35); }
           50% { transform: scaleY(1); }
@@ -527,6 +531,40 @@ window.__ModuleLoader__.load({
         })));
     }
 
+    /**
+     * The voice row's chrome, shared by the committed trigger row and the live
+     * dictation preview so the two read as the same component at both stages.
+     */
+    function voiceRowChildren({ speech, t, time = '', live = false }) {
+      const spoken = speech === '' ? null : h('span', {
+        key: 'spoken',
+        style: {
+          minWidth: 0, maxWidth: '68%', flex: '0 1 auto',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          fontSize: 12.5, opacity: 0.55, textAlign: 'right',
+        },
+      }, speech);
+      const label = h('span', {
+        key: 'label', style: { flex: '0 0 auto', fontSize: 12.5, fontWeight: 500 },
+      }, t('trigger.voice'));
+      const mark = h('span', {
+        key: 'mark', style: { flex: '0 0 auto', display: 'inline-flex', opacity: 0.75 },
+      }, h(VoiceMark, { size: 15 }));
+      const tail = live
+        ? h('span', {
+          key: 'tail',
+          style: {
+            flex: '0 0 auto', width: 6, height: 6, borderRadius: 3,
+            background: '#7ad0ff', animation: 'lv-blink 1.2s ease-in-out infinite',
+          },
+        })
+        : h('span', {
+          key: 'time',
+          style: { flex: '0 0 auto', fontSize: 11, opacity: 0.45, fontVariantNumeric: 'tabular-nums' },
+        }, time);
+      return [spoken, label, mark, tail].filter(Boolean);
+    }
+
     function TurnTriggerRow({ node, t }) {
       const [open, setOpen] = useState(false);
       const data = node?.data ?? {};
@@ -573,7 +611,7 @@ window.__ModuleLoader__.load({
       // first, then the mark and title. Every other trigger keeps the core
       // left-aligned arrangement.
       const children = voice
-        ? [spoken, label, mark, timeNode, chevron].filter(Boolean)
+        ? [...voiceRowChildren({ speech, t, time }), chevron]
         : [mark, label, spoken, h('span', { key: 'spacer', style: { flex: '1 1 auto' } }), timeNode, chevron];
 
       return h('section', { style: { margin: '2px 0' }, 'data-turn-trigger': true },
@@ -604,42 +642,20 @@ window.__ModuleLoader__.load({
 
 
     /**
-     * Dictation preview: the words while they arrive, drawn as the user's own
-     * bubble at the bottom of the conversation column. It clears when the
-     * request becomes a turn, where the voice row carries the same text.
+     * Dictation preview: the same row the turn will become, live. It uses the
+     * voice row's chrome — orb, title, right-aligned speech — with a blinking
+     * dot where the timestamp goes, and clears when the request dispatches.
      */
-    function DictationStrip() {
+    function DictationStrip({ t }) {
       const view = useSyncExternalStore(dictation.subscribe, dictation.get);
-      const scroller = useRef(null);
       const text = view.user;
-
-      useEffect(() => {
-        const node = scroller.current;
-        if (node) node.scrollTop = node.scrollHeight;
-      }, [text]);
-
       if (!view.active || text === '') return null;
-
       return h('div', {
-        ref: scroller,
         style: {
-          display: 'flex', justifyContent: 'flex-end',
-          maxHeight: 132, overflowY: 'auto', padding: '2px 0 6px',
+          display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8,
+          padding: '6px 2px 8px', maxHeight: 96, overflow: 'hidden',
         },
-      },
-      h('div', {
-        style: {
-          maxWidth: 'min(calc(var(--dsh-chat-content-width, 748px) * 0.702), 82%)',
-          background: 'var(--dsw-specific-bubble)',
-          borderRadius: 'var(--dsw-radius-xl)',
-          padding: '10px 16px',
-          fontSize: 'var(--dsh-content-font-size, 14px)',
-          lineHeight: 'calc(22px + var(--dsh-content-font-delta, 0px))',
-          color: 'var(--dsw-alias-label-primary)',
-          whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-          opacity: 0.72,
-        },
-      }, text));
+      }, voiceRowChildren({ speech: text, t, live: true }));
     }
 
     /** The plugin's own settings card: paste an OpenAI key, stored host-side. */
@@ -731,6 +747,7 @@ window.__ModuleLoader__.load({
           name: 'conversation.input.dock',
           id: 'live-voice-dictation',
           order: 30,
+          locale: NS,
         }, DictationStrip));
         ctx.slots.inject('conversation.input.right', () => ctx.slots.register({
           name: 'conversation.input.right',
