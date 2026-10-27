@@ -11,6 +11,7 @@
  * the host process (with its auth cookie). A WebSocket cannot be addressed
  * from that origin.
  */
+// bundle marker: 0.7.2
 window.__ModuleLoader__.load({
   id: '@nmuzaffar/dsh-live-voice',
   factory(require) {
