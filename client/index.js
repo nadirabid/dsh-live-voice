@@ -485,6 +485,19 @@ window.__ModuleLoader__.load({
       },
     };
 
+    /**
+     * Both voice surfaces sit in wider seats than the chat column — the chat
+     * flow item and the full-width composer dock — so each is pinned to the
+     * conversation's own content width and centred inside its seat.
+     */
+    const CHAT_COLUMN = {
+      width: '100%',
+      maxWidth: 'var(--dsh-chat-content-width, 748px)',
+      marginLeft: 'auto',
+      marginRight: 'auto',
+      boxSizing: 'border-box',
+    };
+
     function triggerIconFor(kind) {
       let icons;
       try {
@@ -614,7 +627,7 @@ window.__ModuleLoader__.load({
         ? [...voiceRowChildren({ speech, t, time }), chevron]
         : [mark, label, spoken, h('span', { key: 'spacer', style: { flex: '1 1 auto' } }), timeNode, chevron];
 
-      return h('section', { style: { margin: '2px 0' }, 'data-turn-trigger': true },
+      return h('section', { style: { ...CHAT_COLUMN, marginTop: 2, marginBottom: 2 }, 'data-turn-trigger': true },
         h('button', {
           type: 'button',
           'aria-expanded': open,
@@ -652,6 +665,7 @@ window.__ModuleLoader__.load({
       if (!view.active || text === '') return null;
       return h('div', {
         style: {
+          ...CHAT_COLUMN,
           display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8,
           padding: '6px 2px 8px', maxHeight: 96, overflow: 'hidden',
         },
