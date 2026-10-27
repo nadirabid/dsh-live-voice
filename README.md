@@ -2,6 +2,8 @@
 
 Talk to DeepSeek Harness. GPT-Live listens and speaks; the harness does the work.
 
+![The Live Voice plugin page in DSH](assets/plugin-ui.webp)
+
 ## Install
 
 In DSH: **Plugins → Install**, paste:
