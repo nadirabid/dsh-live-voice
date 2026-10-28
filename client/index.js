@@ -11,13 +11,21 @@
  * the host process (with its auth cookie). A WebSocket cannot be addressed
  * from that origin.
  */
-// bundle marker: 0.7.2
+// bundle marker: 0.7.7
 window.__ModuleLoader__.load({
   id: '@nmuzaffar/dsh-live-voice',
   factory(require) {
     const React = require('react');
-    const { useCallback, useEffect, useRef, useState, useSyncExternalStore } = React;
+    const { Fragment, useCallback, useEffect, useRef, useState, useSyncExternalStore } = React;
     const h = React.createElement;
+    // The chat column is not a slot, so the dictation row reaches it through a
+    // portal. A host without react-dom keeps the dock placement instead.
+    let createPortal = null;
+    try {
+      createPortal = require('react-dom')?.createPortal ?? null;
+    } catch {
+      createPortal = null;
+    }
 
     /**
      * Speech as it is decoded, shared by the orb and the dictation strip. The
@@ -307,6 +315,11 @@ window.__ModuleLoader__.load({
         }
         .lv-orb-on .lv-bar { animation: lv-pulse 900ms ease-in-out infinite; }
         .lv-orb-thinking .lv-bar { animation-duration: 1600ms; }
+        .lv-caret {
+          display: inline-block; width: 2px; height: 1.05em; margin-left: 2px;
+          vertical-align: text-bottom; background: currentColor; opacity: .5;
+          animation: lv-blink 1.1s ease-in-out infinite;
+        }
         @keyframes lv-blink {
           0%, 100% { opacity: .25; }
           50% { opacity: 1; }
@@ -317,6 +330,7 @@ window.__ModuleLoader__.load({
         }
         @media (prefers-reduced-motion: reduce) {
           .lv-orb-on .lv-bar { animation: none; transform: scaleY(.8); }
+          .lv-caret { animation: none; }
         }
       `;
       document.head.append(style);
@@ -499,6 +513,23 @@ window.__ModuleLoader__.load({
       boxSizing: 'border-box',
     };
 
+    /**
+     * The dictation bubble borrows the conversation's own user-message chrome
+     * — the same surface, radius, type and width cap the chat draws a sent
+     * message with — so it reads as that message while it is still being said.
+     */
+    const DICTATION_BUBBLE = {
+      maxWidth: 'min(calc(var(--dsh-chat-content-width, 748px) * 0.702), 82%)',
+      background: 'var(--dsw-specific-bubble, rgba(128, 140, 160, 0.14))',
+      color: 'var(--dsw-alias-label-primary, inherit)',
+      borderRadius: 'var(--dsw-radius-xl, 18px)',
+      padding: '10px 16px',
+      fontSize: 'var(--dsh-content-font-size, 14px)',
+      lineHeight: 'calc(22px + var(--dsh-content-font-delta, 0px))',
+      whiteSpace: 'pre-wrap',
+      wordBreak: 'break-word',
+    };
+
     function triggerIconFor(kind) {
       let icons;
       try {
@@ -662,29 +693,96 @@ window.__ModuleLoader__.load({
 
 
     /**
-     * Dictation preview: the same row the turn will become, live. It uses the
-     * voice row's chrome — orb, title, right-aligned speech — with a blinking
-     * dot where the timestamp goes, and clears when the request dispatches.
+     * The chat column that owns this conversation's messages, resolved from
+     * the seat's own hidden node so the lookup never crosses into another
+     * Session. Re-resolves when the view under the composer changes.
      */
-    function DictationStrip({ t }) {
-      const view = useSyncExternalStore(dictation.subscribe, dictation.get);
-      const scroller = useRef(null);
-      const text = view.user;
+    function useChatColumn(anchor) {
+      const [column, setColumn] = useState(null);
 
       useEffect(() => {
-        const node = scroller.current;
-        if (node) node.scrollTop = node.scrollHeight;
-      }, [text]);
+        const root = anchor.current?.closest('[data-conversation-content]');
+        if (!root) return undefined;
+        let frame = 0;
+        const sync = () => {
+          frame = 0;
+          setColumn(root.querySelector('[data-chat-flow]'));
+        };
+        sync();
+        const observer = new MutationObserver(() => {
+          if (frame === 0) frame = requestAnimationFrame(sync);
+        });
+        observer.observe(root, { childList: true, subtree: true });
+        return () => {
+          observer.disconnect();
+          if (frame !== 0) cancelAnimationFrame(frame);
+        };
+      }, [anchor]);
 
-      if (!view.active || text === '') return null;
-      return h('div', {
-        ref: scroller,
+      return column;
+    }
+
+    /**
+     * Dictation tail: the words as they are decoded, seated at the end of the
+     * conversation as the user message being dictated. The bubble is the
+     * message; the mark and title beneath it name the source, and the caret
+     * inside it keeps the last word in place while more arrives.
+     *
+     * The row lives in the chat column, before the running indicator while a
+     * turn is in flight, so it scrolls with the transcript and clears when the
+     * request dispatches, at which point the committed voice row carries the
+     * same words. A view without a chat column (a document, a trajectory)
+     * keeps it in the dock above the composer.
+     */
+    function DictationTail({ t }) {
+      const view = useSyncExternalStore(dictation.subscribe, dictation.get);
+      const anchor = useRef(null);
+      const row = useRef(null);
+      const column = useChatColumn(anchor);
+      const live = view.active && view.user !== '';
+
+      useEffect(() => { ensureStyle(); }, []);
+
+      useEffect(() => {
+        const node = row.current;
+        if (!live || node === null || column === null) return undefined;
+        const place = () => {
+          const running = column.querySelector(':scope > [data-chat-running]');
+          if (node.parentNode !== column || node.nextElementSibling !== running) {
+            column.insertBefore(node, running);
+          }
+        };
+        place();
+        const observer = new MutationObserver(place);
+        observer.observe(column, { childList: true });
+        return () => {
+          observer.disconnect();
+          node.remove();
+        };
+      }, [column, live]);
+
+      const anchorNode = h('span', { ref: anchor, hidden: true, 'aria-hidden': true });
+      if (!live) return anchorNode;
+
+      const content = h('div', {
+        ref: row,
+        'data-live-voice-dictation': '',
         style: {
-          ...CHAT_COLUMN,
-          display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', gap: 8,
-          padding: '6px 2px 8px', maxHeight: 'min(32vh, 240px)', overflowY: 'auto',
+          display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
+          gap: 5, padding: '2px 0 4px',
         },
-      }, voiceRowChildren({ speech: text, t, live: true }));
+      },
+      h('div', { style: DICTATION_BUBBLE }, view.user, h('span', { className: 'lv-caret', 'aria-hidden': true })),
+      h('div', {
+        style: {
+          display: 'inline-flex', alignItems: 'center', gap: 5,
+          fontSize: 11.5, lineHeight: '16px', opacity: 0.45,
+        },
+      }, h(VoiceMark, { size: 12 }), h('span', null, t('trigger.voice'))));
+
+      return h(Fragment, null, anchorNode, column !== null && createPortal !== null
+        ? createPortal(content, column)
+        : h('div', { style: CHAT_COLUMN }, content));
     }
 
     function maskKey(key) {
@@ -799,7 +897,7 @@ window.__ModuleLoader__.load({
           id: 'live-voice-dictation',
           order: 30,
           locale: NS,
-        }, DictationStrip));
+        }, DictationTail));
         ctx.slots.inject('conversation.input.right', () => ctx.slots.register({
           name: 'conversation.input.right',
           id: 'live-voice',

@@ -79,12 +79,21 @@ Owning that key means owning it for all sources: a future core redesign of the r
 
 ## Dictation preview
 
-While a session is live, `conversation.input.dock` renders the same row chrome with a blinking dot
-in place of the timestamp, wrapping over multiple lines, capped at a third of the viewport with its
-own scroll. It clears when the turn dispatches, at which point the committed row carries the text.
+While a session is live, the decoded words are drawn as the message being dictated: a user bubble at
+the end of the conversation, a caret where the next word lands, and the plugin's mark and title
+beneath it. It clears when the turn dispatches, at which point the committed row carries the text.
 
-Both surfaces are pinned to `--dsh-chat-content-width` and centred, because both seats are wider
-than the conversation column.
+The chat owns the transcript and exposes no seat at its end, so the bubble is portalled into the
+chat column itself (`[data-chat-flow]`), resolved from the seat's own hidden anchor inside its
+`[data-conversation-content]` so the lookup cannot reach another Session. A `MutationObserver` keeps
+the row last — and before the running indicator (`[data-chat-running]`) while a turn is in flight,
+because React appends its own children without knowing about the portal. Growing the column is also
+what the chat's own `ResizeObserver` follows, so the bubble stays in view while the reader is at the
+tail.
+
+The seat is still registered in `conversation.input.dock`: that registration is what keeps the
+component mounted under the composer, and it is the fallback placement for a view with no chat
+column — a document, a trajectory — pinned to `--dsh-chat-content-width` and centred.
 
 ## Composer seat
 
