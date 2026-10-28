@@ -146,9 +146,8 @@ test('a delegation runs one harness turn and answers the delegation id', async (
   await waitFor(() => tasks.length === 1);
   assert.equal(tasks.length, 1);
   assert.equal(tasks[0].content[0].text, 'run the tests');
-  assert.equal(tasks[0].source.form, 'notice');
-  assert.equal(tasks[0].source.kind, 'cordis-host-runner');
-  assert.match(tasks[0].source.summary, /^Voice: run the tests$/);
+  // Spoken requests land as the user's own message, not as a notice row.
+  assert.deepEqual(tasks[0].source, { kind: 'user' });
 
   await waitFor(() => live.received.some((event) => event.type === 'session.commentary.append'));
   const commentary = live.received.find((event) => event.type === 'session.commentary.append');

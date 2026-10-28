@@ -57,31 +57,25 @@ an id and no task text, so the task has to be recovered from the user's own spee
 
 1. `sessionController.resolveAgent(sessionId)` — the live agent, or a session error;
 2. capture `agent.session.seq`;
-3. `agent.followup(createUserMessage({ content: task, source: { kind: 'cordis-host-runner', form: 'notice', summary: 'Voice: …' } }))`;
+3. `agent.followup(createUserMessage({ content: task, source: { kind: 'user' } }))`;
 4. `await agent.whenIdle()`, then `sessions.flush(session)`;
 5. read events after the captured seq for the last assistant text and the turn reason;
 6. append the result with `session.commentary.append(text, delegation_id)`.
 
-The `form: 'notice'` makes the message render as a compact row rather than a user bubble, and its
-summary is the decoded speech — which is how a turn shows what was said.
+The message carries the user's own source, so the transcript records the spoken words as the user's
+message and draws a normal user bubble. A spoken request is the user's request; the plugin no longer
+wraps it in a notice, and a run of spoken turns reads like a typed conversation.
 
-## Chat row
-
-That notice is a turn trigger, rendered through the keyed slot `conversation.chat.node` at key
-`turn-trigger`. The plugin registers the same key at **priority −1**, shadowing `dsh-client-ui-chat`'s
-renderer (keyed cells resolve lowest-priority-first; a different priority shadows, the same priority
-throws). Voice rows get the plugin's mark, the title **Live Voice**, and the speech inline,
-right-aligned like a user message. Every other trigger source — schedule, job, webhook, subagent,
-team, github, plugin — is rendered by our copy of the core mapping, so those rows keep their title
-and icon but not pixel-identical spacing.
-
-Owning that key means owning it for all sources: a future core redesign of the row does not reach us.
+That also removed the plugin's last reason to own `conversation.chat.node`: with no voice notice row
+to draw, the keyed `turn-trigger` shadow, its row copy and its label table are gone, and every
+trigger source renders through the core chat again.
 
 ## Dictation preview
 
 While a session is live, the decoded words are drawn as the message being dictated: a user bubble at
 the end of the conversation, a caret where the next word lands, and the plugin's mark and title
-beneath it. It clears when the turn dispatches, at which point the committed row carries the text.
+beneath it. It clears when the turn dispatches, at which point the committed user message carries the
+text, so the bubble hands over to the message it was previewing.
 
 The chat owns the transcript and exposes no seat at its end, so the bubble is portalled into the
 chat column itself (`[data-chat-flow]`), resolved from the seat's own hidden anchor inside its

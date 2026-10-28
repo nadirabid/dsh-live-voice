@@ -11,7 +11,7 @@
  * the host process (with its auth cookie). A WebSocket cannot be addressed
  * from that origin.
  */
-// bundle marker: 0.7.7
+// bundle marker: 0.8.0
 window.__ModuleLoader__.load({
   id: '@nmuzaffar/dsh-live-voice',
   factory(require) {
@@ -461,49 +461,15 @@ window.__ModuleLoader__.load({
 
     const NS = 'live-voice';
 
-    /**
-     * The trigger row is a keyed chat-node seat owned by `dsh-client-ui-chat`.
-     * This bundle shadows it at priority -1 so voice turns can be titled with
-     * the plugin's own name and mark; every other source keeps the same title
-     * and icon the core row gives it.
-     */
-    const TRIGGER_LABELS = {
-      en: {
-        'trigger.request': 'Execution requested',
-        'trigger.goal': 'Continuing goal',
-        'trigger.agent': 'Task message received',
-        'trigger.team': 'Team message received',
-        'trigger.subagent': 'Subtask status updated',
-        'trigger.github': 'GitHub event received',
-        'trigger.webhook': 'External event received',
-        'trigger.schedule': 'Automation task',
-        'trigger.job': 'Background task updated',
-        'trigger.plugin': 'Plugin status updated',
-        'trigger.voice': 'Live Voice',
-        'trigger.explanation': 'This notification triggered this response.',
-        'trigger.voiceNote': 'Decoded from the microphone. The agent receives the trimmed request.',
-      },
-      zh: {
-        'trigger.request': '收到执行请求',
-        'trigger.goal': '继续执行目标',
-        'trigger.agent': '收到任务消息',
-        'trigger.team': '收到团队消息',
-        'trigger.subagent': '子任务状态更新',
-        'trigger.github': '收到 GitHub 事件',
-        'trigger.webhook': '收到外部事件',
-        'trigger.schedule': '自动化任务',
-        'trigger.job': '后台任务状态更新',
-        'trigger.plugin': '插件状态更新',
-        'trigger.voice': '实时语音',
-        'trigger.explanation': '这条通知触发了本轮回复。',
-        'trigger.voiceNote': '来自麦克风的转写。智能体收到的是修剪后的请求。',
-      },
+    /** The one label this bundle still draws: the source under the dictation. */
+    const LABELS = {
+      en: { 'trigger.voice': 'Live Voice' },
+      zh: { 'trigger.voice': '实时语音' },
     };
 
     /**
-     * Both voice surfaces sit in wider seats than the chat column — the chat
-     * flow item and the full-width composer dock — so each is pinned to the
-     * conversation's own content width and centred inside its seat.
+     * The dock is wider than the conversation column, so the fallback seat
+     * pins its row to the conversation's own content width and centres it.
      */
     const CHAT_COLUMN = {
       width: '100%',
@@ -530,44 +496,6 @@ window.__ModuleLoader__.load({
       wordBreak: 'break-word',
     };
 
-    function triggerIconFor(kind) {
-      let icons;
-      try {
-        icons = require('@deepseek-ai/dsh-client-ui-primitives');
-      } catch {
-        return null;
-      }
-      const map = {
-        goal: icons.IconGoalOutlineRegular,
-        'agent-message': icons.IconPaperPlaneOutlineRegular,
-        'team-message': icons.IconAgentPresetOutlineRegular,
-        'subagent-settled': icons.IconAgentPresetOutlineRegular,
-        webhook: icons.IconGlobeOutlineRegular,
-        schedule: icons.IconClockOutlineRegular,
-        'tool-jobs': icons.IconQueueOutlineRegular,
-        'cordis-host-runner': icons.IconCordisPluginOutlineRegular,
-      };
-      return map[kind] ?? icons.IconContextInjectionOutlineRegular ?? null;
-    }
-
-    function blocksToText(content) {
-      if (!Array.isArray(content)) return '';
-      return content
-        .filter((block) => block && block.type === 'text' && typeof block.text === 'string')
-        .map((block) => block.text)
-        .join('\n')
-        .trim();
-    }
-
-    function clockOf(time) {
-      if (typeof time !== 'number' || !Number.isFinite(time)) return '';
-      try {
-        return new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(new Date(time));
-      } catch {
-        return '';
-      }
-    }
-
     function VoiceMark({ size = 14 }) {
       return h('svg', { width: size, height: size, viewBox: '0 0 34 34', 'aria-hidden': true, style: { display: 'block' } },
         h('circle', { cx: 17, cy: 17, r: 16, fill: '#ffffff', stroke: 'rgba(0,0,0,0.18)', strokeWidth: 1 }),
@@ -575,122 +503,6 @@ window.__ModuleLoader__.load({
           key: index, x, y: 17 - height / 2, width: 1.5, height, rx: 0.75, fill: '#0d0f12',
         })));
     }
-
-    /**
-     * The voice row's chrome, shared by the committed trigger row and the live
-     * dictation preview so the two read as the same component at both stages.
-     */
-    function voiceRowChildren({ speech, t, time = '', live = false }) {
-      const spoken = speech === '' ? null : h('span', {
-        key: 'spoken',
-        style: live
-          ? {
-            minWidth: 0, maxWidth: '76%', flex: '0 1 auto',
-            fontSize: 12.5, lineHeight: 1.45, opacity: 0.6, textAlign: 'right',
-            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-          }
-          : {
-            minWidth: 0, maxWidth: '68%', flex: '0 1 auto',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            fontSize: 12.5, opacity: 0.55, textAlign: 'right',
-          },
-      }, speech);
-      const label = h('span', {
-        key: 'label', style: { flex: '0 0 auto', fontSize: 12.5, fontWeight: 500 },
-      }, t('trigger.voice'));
-      const mark = h('span', {
-        key: 'mark', style: { flex: '0 0 auto', display: 'inline-flex', opacity: 0.75 },
-      }, h(VoiceMark, { size: 15 }));
-      const tail = live
-        ? h('span', {
-          key: 'tail',
-          style: {
-            flex: '0 0 auto', width: 6, height: 6, borderRadius: 3,
-            background: '#7ad0ff', animation: 'lv-blink 1.2s ease-in-out infinite',
-          },
-        })
-        : h('span', {
-          key: 'time',
-          style: { flex: '0 0 auto', fontSize: 11, opacity: 0.45, fontVariantNumeric: 'tabular-nums' },
-        }, time);
-      return [spoken, label, mark, tail].filter(Boolean);
-    }
-
-    function TurnTriggerRow({ node, t }) {
-      const [open, setOpen] = useState(false);
-      const data = node?.data ?? {};
-      const source = data.source ?? {};
-      const kind = typeof source.kind === 'string' ? source.kind : '';
-      const voice = kind === 'cordis-host-runner';
-      const speech = voice ? String(source.summary ?? '').replace(/^Voice:\s*/, '') : '';
-      const title = voice ? t('trigger.voice') : (
-        kind === 'goal' ? t('trigger.goal')
-          : kind === 'agent-message' ? t('trigger.agent')
-            : kind === 'team-message' ? t('trigger.team')
-              : kind === 'subagent-settled' ? t('trigger.subagent')
-                : kind === 'webhook' ? (source.provider === 'github' ? t('trigger.github') : t('trigger.webhook'))
-                  : kind === 'schedule' ? t('trigger.schedule')
-                    : kind === 'tool-jobs' ? t('trigger.job')
-                      : kind === 'cordis-host-runner' ? t('trigger.plugin')
-                        : t('trigger.request'));
-      const Icon = triggerIconFor(kind);
-      const time = clockOf(data.time);
-      const body = blocksToText(data.content);
-
-      const mark = h('span', { key: 'mark', style: { flex: '0 0 auto', display: 'inline-flex', opacity: 0.75 } },
-        voice ? h(VoiceMark, { size: 15 }) : Icon ? h(Icon, { size: 14 }) : null);
-      const label = h('span', { key: 'label', style: { flex: '0 0 auto', fontSize: 12.5, fontWeight: 500 } }, title);
-      const spoken = speech === '' ? null : h('span', {
-        key: 'spoken',
-        style: {
-          minWidth: 0, maxWidth: voice ? '68%' : undefined,
-          flex: voice ? '0 1 auto' : '1 1 auto',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          fontSize: 12.5, opacity: 0.55, textAlign: voice ? 'right' : 'left',
-        },
-      }, speech);
-      const timeNode = h('span', {
-        key: 'time',
-        style: { flex: '0 0 auto', fontSize: 11, opacity: 0.45, fontVariantNumeric: 'tabular-nums' },
-      }, time);
-      const chevron = h('span', {
-        key: 'chevron',
-        style: { flex: '0 0 auto', opacity: 0.45, fontSize: 10, transform: open ? 'rotate(180deg)' : 'none' },
-      }, '\u25be');
-
-      // A voice turn reads like the user's own message: right-aligned, speech
-      // first, then the mark and title. Every other trigger keeps the core
-      // left-aligned arrangement.
-      const children = voice
-        ? [...voiceRowChildren({ speech, t, time }), chevron]
-        : [mark, label, spoken, h('span', { key: 'spacer', style: { flex: '1 1 auto' } }), timeNode, chevron];
-
-      return h('section', { style: { ...CHAT_COLUMN, marginTop: 2, marginBottom: 2 }, 'data-turn-trigger': true },
-        h('button', {
-          type: 'button',
-          'aria-expanded': open,
-          onClick: () => setOpen(!open),
-          style: {
-            display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-            justifyContent: voice ? 'flex-end' : 'flex-start',
-            padding: '6px 2px', background: 'none', border: 'none', cursor: 'pointer',
-            color: 'inherit', font: 'inherit', textAlign: voice ? 'right' : 'left',
-          },
-        }, children),
-        open ? h('div', {
-          style: {
-            padding: voice ? '2px 23px 10px 0' : '2px 0 10px 23px',
-            display: 'grid', gap: 6,
-            justifyItems: voice ? 'end' : 'start',
-            textAlign: voice ? 'right' : 'left',
-          },
-        },
-        h('div', { style: { fontSize: 11.5, opacity: 0.5 } },
-          voice ? t('trigger.voiceNote') : t('trigger.explanation')),
-        voice && speech !== '' ? h('div', { style: { fontSize: 12.5, opacity: 0.85 } }, speech) : null,
-        body === '' ? null : h('div', { style: { fontSize: 12.5, opacity: 0.7, whiteSpace: 'pre-wrap' } }, body)) : null);
-    }
-
 
     /**
      * The chat column that owns this conversation's messages, resolved from
@@ -885,13 +697,7 @@ window.__ModuleLoader__.load({
     return {
       inject: ['slots', 'locale'],
       apply(ctx) {
-        ctx.effect(() => ctx.locale.register(NS, TRIGGER_LABELS));
-        ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({
-          name: 'conversation.chat.node',
-          key: 'turn-trigger',
-          priority: -1,
-          locale: NS,
-        }, TurnTriggerRow));
+        ctx.effect(() => ctx.locale.register(NS, LABELS));
         ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
           name: 'conversation.input.dock',
           id: 'live-voice-dictation',
